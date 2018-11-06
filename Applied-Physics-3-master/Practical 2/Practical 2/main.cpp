@@ -23,10 +23,12 @@
 
 int main()
 {
-	float pixelsToMeters = 10.0f;
-	float angleInRads = 0.0f;
-	float angleInDegrees = 270.0f;
-	float e = 0.5f;
+	float pixelsToMeters = 20.0f;
+	float angleInDegrees = 0.0f;
+	sf::Vector2f acceleration;
+	float e = 0.8f;
+	sf::Vector2f unitVector;
+	float dt = 0;
 
 	sf::RenderWindow window(sf::VideoMode(800, 800), "Go Physics!!");
 
@@ -35,22 +37,21 @@ int main()
 	ground.setPosition(0, 710);
 	ground.setSize(sf::Vector2f{ 800,100 });
 
-	sf::CircleShape shape(10.0f);
+	sf::RectangleShape shape;
+	shape.setSize({20.0f, 20.0f});
 	shape.setFillColor(sf::Color::Green);
 
 	sf::Vector2f velocity(0, 0);
-	sf::Vector2f position(100, 680);
-	sf::Vector2f intialVelocity(1, 1);
+	sf::Vector2f position(100, 690);
 
 	sf::Vector2f gravity(0.0f, 9.8f * pixelsToMeters);
 
 	sf::Time currentTime = { sf::seconds(0.0f) };
 
 	sf::Text timeInAir;
-	sf::Text maxHeight;
-	sf::Text angleOfProjection;
-	sf::Text intialVel;
+	sf::Text distanceTravelled;
 	sf::Font font;
+
 
 	if (!font.loadFromFile("game_over.ttf"))
 	{
@@ -64,20 +65,10 @@ int main()
 	timeInAir.setFont(font);
 	timeInAir.setPosition(50, 90);
 
-	maxHeight.setCharacterSize(50);
-	maxHeight.setFillColor(sf::Color::White);
-	maxHeight.setFont(font);
-	maxHeight.setPosition(50, 50);
-
-	angleOfProjection.setCharacterSize(50);
-	angleOfProjection.setFillColor(sf::Color::White);
-	angleOfProjection.setFont(font);
-	angleOfProjection.setPosition(50, 130);
-
-	intialVel.setCharacterSize(50);
-	intialVel.setFillColor(sf::Color::White);
-	intialVel.setFont(font);
-	intialVel.setPosition(50, 170);
+	distanceTravelled.setCharacterSize(50);
+	distanceTravelled.setFillColor(sf::Color::White);
+	distanceTravelled.setFont(font);
+	distanceTravelled.setPosition(50, 50);
 
 	float m_maxHeight = 0.0f;
 
@@ -87,6 +78,8 @@ int main()
 	const sf::Time timePerFrame = sf::seconds(1.0f / 60.0f);
 	sf::Time timeSinceLastUpdate = sf::Time::Zero;
 
+
+
 	clock.restart();
 
 	while (window.isOpen())
@@ -94,67 +87,66 @@ int main()
 
 		//read keyboard inout
 		sf::Event event;
+
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && position.y >= 680)
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y) && position.y >= 690)
 			{
-				angleInRads = angleInDegrees * (3.14 * 180);
-				velocity = intialVelocity * pixelsToMeters;
-				velocity.x = velocity.x * std::cos(angleInRads);
-				velocity.y = velocity.y * std::cos(angleInRads);
-				maxHeight.setString("Max Height: " + std::to_string(m_maxHeight));
+				velocity.y -= 80.0f;
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::X) && velocity.x == 0)
 			{
-				position = { 100, 680 };
-				velocity = { 0,0 };
+				velocity.x += 80.0f;
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y))
+			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z) && velocity.x == 0)
 			{
-				if (angleInDegrees > 270)
-				{
-					angleInDegrees--;
-				}
-			
-			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::U))
-			{
-				if (angleInDegrees < 360)
-				{
-					angleInDegrees++;
-				}
-			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::V))
-			{
-				intialVelocity += {1, 1};
-			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
-			{
-				intialVelocity -= {1, 1};
+				velocity.x -= 80.0f;
 			}
 		}
 
-		velocity.y = - e * velocity.y;
+	
 
 		//get the time since last update and restart the clock
 		timeSinceLastUpdate += clock.restart();
 		//update every 60th of a second
 		if (timeSinceLastUpdate > timePerFrame)
 		{
-
-			if (position.y + 20 <= ground.getPosition().y || velocity.y < 0)
+			if (velocity.x != 0)
 			{
-				velocity = velocity + gravity * timeSinceLastUpdate.asSeconds();
-				position = position + velocity * timeSinceLastUpdate.asSeconds() + (20.0f * gravity * (timeSinceLastUpdate.asSeconds() * timeSinceLastUpdate.asSeconds()));
+				unitVector.x = (velocity.x / sqrt((velocity.x * velocity.x) + (velocity.y * velocity.y)));
+				unitVector.y = (velocity.y / sqrt((velocity.x * velocity.x) + (velocity.y * velocity.y)));
+				acceleration = -e * unitVector * pixelsToMeters;
+			}
+			else if (velocity.y != 0)
+			{
+				acceleration = gravity;
+			}
+
+			if (position.y > 690 && position.y < 690)
+			{
+				position.y = 690;
+			}
+
+			if (position.y + 20 <= ground.getPosition().y && velocity != sf::Vector2f{0,0})
+			{
+				velocity = velocity + acceleration * timeSinceLastUpdate.asSeconds();
+				position = position + velocity * timeSinceLastUpdate.asSeconds() + (0.5f * acceleration * (timeSinceLastUpdate.asSeconds() * timeSinceLastUpdate.asSeconds()));
 				currentTime += timeSinceLastUpdate;
 
 				timeInAir.setString("Time: " + std::to_string(currentTime.asSeconds()));
-
+			}
+			else
+			{
+				timeInAir.setString("Time: " + std::to_string(currentTime.asSeconds()));
 			}
 
+			if (abs(velocity.x) < 1 * pixelsToMeters)
+			{
+				velocity.x = 0;
+			}
 
 
 			window.clear();
@@ -169,11 +161,7 @@ int main()
 			window.draw(shape);
 			window.draw(ground);
 			window.draw(timeInAir);
-			window.draw(maxHeight);
-			angleOfProjection.setString("Angle of Projection : " + std::to_string(angleInDegrees));
-			window.draw(angleOfProjection);
-			intialVel.setString("Intial Velocity : " + std::to_string(intialVelocity.x));
-			window.draw(intialVel);
+			window.draw(distanceTravelled);
 
 			window.display();
 			timeSinceLastUpdate = sf::Time::Zero;
