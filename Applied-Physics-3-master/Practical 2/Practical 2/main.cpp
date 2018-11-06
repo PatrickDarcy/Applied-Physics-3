@@ -25,6 +25,7 @@ int main()
 {
 	float pixelsToMeters = 20.0f;
 	float angleInDegrees = 0.0f;
+	float distance = 0;
 	sf::Vector2f acceleration;
 	float e = 0.8f;
 	sf::Vector2f unitVector;
@@ -93,17 +94,23 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y) && position.y >= 690)
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y) && position.y >= 690 && velocity.x == 0)
 			{
 				velocity.y -= 80.0f;
+				distance = 0;
+				currentTime = sf::seconds(0);
 			}
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::X) && velocity.x == 0)
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::X) && velocity.x == 0 && velocity.y == 0)
 			{
 				velocity.x += 80.0f;
+				distance = 0;
+				currentTime = sf::seconds(0);
 			}
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z) && velocity.x == 0)
+			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z) && velocity.x == 0 && velocity.y == 0)
 			{
 				velocity.x -= 80.0f;
+				distance = 0;
+				currentTime = sf::seconds(0);
 			}
 		}
 
@@ -125,29 +132,25 @@ int main()
 				acceleration = gravity;
 			}
 
-			if (position.y > 690 && position.y < 690)
-			{
-				position.y = 690;
-			}
-
-			if (position.y + 20 <= ground.getPosition().y && velocity != sf::Vector2f{0,0})
+			if (position.y + pixelsToMeters <= ground.getPosition().y && velocity != sf::Vector2f{0,0})
 			{
 				velocity = velocity + acceleration * timeSinceLastUpdate.asSeconds();
 				position = position + velocity * timeSinceLastUpdate.asSeconds() + (0.5f * acceleration * (timeSinceLastUpdate.asSeconds() * timeSinceLastUpdate.asSeconds()));
-				currentTime += timeSinceLastUpdate;
 
-				timeInAir.setString("Time: " + std::to_string(currentTime.asSeconds()));
-			}
-			else
-			{
-				timeInAir.setString("Time: " + std::to_string(currentTime.asSeconds()));
+				currentTime += timeSinceLastUpdate;
+				distance = abs(velocity.x) * currentTime.asSeconds();
+				if (position.y > 690)
+				{
+					position.y = 690;
+				}
 			}
 
 			if (abs(velocity.x) < 1 * pixelsToMeters)
 			{
 				velocity.x = 0;
+				timeInAir.setString("Time: " + std::to_string(currentTime.asSeconds()));
+				distanceTravelled.setString("Distance: " + std::to_string(distance));
 			}
-
 
 			window.clear();
 
